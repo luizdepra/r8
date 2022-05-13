@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+pixels = "0.9.0"
+rotlib = { path = "../rotlib" }
