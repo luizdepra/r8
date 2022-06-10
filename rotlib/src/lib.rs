@@ -101,10 +101,9 @@ impl Default for Keyboard {
     }
 }
 
-#[allow(dead_code)]
 pub struct StepResult {
-    redraw: bool,
-    beep: bool,
+    pub redraw: bool,
+    pub beep: bool,
 }
 
 pub struct Machine {
