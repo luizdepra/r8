@@ -1,11 +1,12 @@
 use anyhow::{bail, Result};
 use clap::Parser;
-use log::error;
+use log::{debug, error, info};
 use pixels::{Pixels, SurfaceTexture};
 use rotlib::{Keyboard, Machine};
 use std::fs;
 use std::path::PathBuf;
-use std::time::Instant;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -15,6 +16,11 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 64;
 const SCREEN_HEIGHT: u32 = 32;
 const SCREEN_SCALE: u32 = 8;
+
+const WHITE: [usize; 4] = [0xFF, 0xFF, 0xFF, 0xFF];
+const BLACK: [usize; 4] = [0x00, 0x00, 0x00, 0xFF];
+
+const TARGET_FPS: u64 = 60;
 
 /// A simple CHIP-8 interpreter made with rust, winit and pixels.
 #[derive(Parser, Debug)]
@@ -41,6 +47,8 @@ impl Interpreter {
     }
 
     fn load(&mut self, path: PathBuf) -> Result<()> {
+        debug!("interpreter_load, path={path:?}");
+
         let rom = fs::read(path)?;
 
         self.machine.load_rom(&rom);
@@ -49,14 +57,40 @@ impl Interpreter {
     }
 
     fn update(&mut self) {
-        //let result = self.machine.step(self.keyboard.keys_as_ref());
+        debug!("interpreter_update");
 
-        //self.redraw = result.redraw;
+        let result = self.machine.step(self.keyboard.keys_as_ref());
+        self.redraw = result.redraw;
     }
 
-    fn draw(&mut self, _frame: &mut [u8]) {
+    fn draw(&mut self, frame: &mut [u8]) {
+        debug!("interpreter_draw, redraw={}", self.redraw);
+
+        if !self.redraw {
+            return;
+        }
+
+        for pixel in self.machine.vram_as_ref() {
+            self.draw_scaled_pixel(frame, *pixel);
+        }
+
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            let x = i % SCREEN_WIDTH as usize;
+            let y = i / SCREEN_WIDTH as usize;
+
+            let rgba = if (x + y) % 2 == 0 {
+                [0xFF, 0xFF, 0xFF, 0xFF]
+            } else {
+                [0x00, 0xFF, 0xFF, 0xFF]
+            };
+
+            pixel.copy_from_slice(&rgba);
+        }
+
         self.redraw = false;
     }
+
+    fn draw_scaled_pixel(&self, frame: &mut [u8], pixel: u8) {}
 }
 
 fn main() -> Result<()> {
@@ -92,43 +126,20 @@ fn main() -> Result<()> {
     let mut interpreter = Interpreter::new();
     interpreter.load(args.rom).expect("failed to read rom");
 
-    /*event_loop.run(move |event, _, control_flow| {`
-        if let Event::RedrawRequested(_) = event {
-            interpreter.draw(pixels.get_frame());
-            if pixels
-                .render()
-                .map_err(|e| error!("rendering failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-        }
+    let target_frametime = Duration::from_micros(1_000_000 / TARGET_FPS);
 
-        if input.update(&event) {
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-
-            if let Some(size) = input.window_resized() {
-                pixels.resize_surface(size.width, size.height);
-            }
-
-            interpreter.update();
-            window.request_redraw();
-        }
-    });*/
-
-    let mut timer = Instant::now();
+    let mut should_update = false;
 
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
-                //let elapsed
+                let frame_time = Instant::now();
 
-                // interpreter.update();
-                // interpreter.draw(pixels.get_frame());
+                if should_update {
+                    interpreter.update();
+                }
+                interpreter.draw(pixels.get_frame());
+
                 if pixels
                     .render()
                     .map_err(|e| error!("rendering failed: {}", e))
@@ -137,6 +148,10 @@ fn main() -> Result<()> {
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
+
+                let wait_for = target_frametime - frame_time.elapsed();
+                sleep(wait_for);
+                should_update = false;
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
@@ -145,6 +160,9 @@ fn main() -> Result<()> {
         };
 
         if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Space) {
+                should_update = true;
+            }
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
                 return;

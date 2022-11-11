@@ -1,3 +1,5 @@
+use log::debug;
+
 // Sizes
 const SCREEN_WIDTH: usize = 64;
 const SCREEN_HEIGHT: usize = 32;
@@ -67,6 +69,7 @@ pub enum Key {
     F,
 }
 
+#[derive(Debug)]
 enum OperationResult {
     Next,
     NextAndRedraw,
@@ -75,6 +78,7 @@ enum OperationResult {
     WaitInput,
 }
 
+#[derive(Debug)]
 pub struct Keyboard {
     keys: Keys,
 }
@@ -101,11 +105,13 @@ impl Default for Keyboard {
     }
 }
 
+#[derive(Debug)]
 pub struct StepResult {
     pub redraw: bool,
     pub beep: bool,
 }
 
+#[derive(Debug)]
 pub struct Machine {
     ram: Ram,
     vram: Vram,
@@ -125,10 +131,16 @@ impl Machine {
 
     pub fn load_rom(&mut self, rom: &Rom) {
         self.ram[ROM_INITIAL_ADDRESS..ROM_INITIAL_ADDRESS + rom.len()].copy_from_slice(rom);
+
+        debug!("rom_loaded, ram={:?}", self.ram);
     }
 
     pub fn step(&mut self, keys: &Keys) -> StepResult {
+        debug!("step_pc, pc={:#06x?}", self.pc);
+
         let instr = (self.ram[self.pc] as u16) << 8 | self.ram[self.pc + 1] as u16;
+
+        debug!("step_instruction, instr={:#06x?}", instr);
 
         let redraw = self.run_instruction(instr, keys);
 
