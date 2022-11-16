@@ -231,18 +231,24 @@ impl Machine {
     }
 
     fn draw_sprite(&mut self, x: usize, y: usize, n: u8) {
+        debug!("draw_sprite, x={}, y={}, n={}", x, y, n);
+
         for iy in 0..(n as usize) {
             let data = self.ram[self.i + iy];
             for ix in 0..SPRITE_WIDTH {
                 let pixel = data & (0x80 >> ix);
 
-                self.draw_pixel(pixel, x, y);
+                self.draw_pixel(pixel, ix, iy);
             }
         }
     }
 
     fn draw_pixel(&mut self, pixel: u8, x: usize, y: usize) {
+        debug!("draw_pixel, x={}, y={}, pixel={}", x, y, pixel);
+
         if let Some(idx) = ram_index(x, y) {
+            debug!("draw_pixel_ram_index, idx={}", idx);
+
             if pixel == 1 && self.vram[idx] == 1 {
                 self.v[CARRY] = 1;
             }
@@ -609,5 +615,5 @@ fn ram_index(x: usize, y: usize) -> Option<usize> {
         return None;
     }
 
-    Some(y * SCREEN_HEIGHT + x * SCREEN_WIDTH)
+    Some(y * SCREEN_HEIGHT + x)
 }

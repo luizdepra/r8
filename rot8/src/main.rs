@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use clap::Parser;
-use log::{debug, error, info};
+use log::{debug, error};
 use pixels::{Pixels, SurfaceTexture};
 use rotlib::{Keyboard, Machine};
 use std::fs;
@@ -17,8 +17,8 @@ const SCREEN_WIDTH: u32 = 64;
 const SCREEN_HEIGHT: u32 = 32;
 const SCREEN_SCALE: u32 = 8;
 
-const WHITE: [usize; 4] = [0xFF, 0xFF, 0xFF, 0xFF];
-const BLACK: [usize; 4] = [0x00, 0x00, 0x00, 0xFF];
+const WHITE: [u8; 4] = [0xFF, 0xFF, 0xFF, 0xFF];
+const BLACK: [u8; 4] = [0x00, 0x00, 0x00, 0xFF];
 
 const TARGET_FPS: u64 = 60;
 
@@ -35,6 +35,7 @@ struct Interpreter {
     machine: Machine,
     keyboard: Keyboard,
     redraw: bool,
+    should_update: bool,
 }
 
 impl Interpreter {
@@ -43,6 +44,7 @@ impl Interpreter {
             machine: Machine::default(),
             keyboard: Keyboard::default(),
             redraw: false,
+            should_update: false,
         }
     }
 
@@ -70,27 +72,20 @@ impl Interpreter {
             return;
         }
 
-        for pixel in self.machine.vram_as_ref() {
-            self.draw_scaled_pixel(frame, *pixel);
-        }
-
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = i % SCREEN_WIDTH as usize;
-            let y = i / SCREEN_WIDTH as usize;
-
-            let rgba = if (x + y) % 2 == 0 {
-                [0xFF, 0xFF, 0xFF, 0xFF]
+        for (dst, &src) in frame
+            .chunks_exact_mut(4)
+            .zip(self.machine.vram_as_ref().iter())
+        {
+            dst.copy_from_slice(if src != 0 {
+                WHITE.as_slice()
             } else {
-                [0x00, 0xFF, 0xFF, 0xFF]
-            };
-
-            pixel.copy_from_slice(&rgba);
+                BLACK.as_slice()
+            });
         }
 
         self.redraw = false;
+        self.should_update = false;
     }
-
-    fn draw_scaled_pixel(&self, frame: &mut [u8], pixel: u8) {}
 }
 
 fn main() -> Result<()> {
@@ -107,9 +102,10 @@ fn main() -> Result<()> {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
 
-    let width = SCREEN_WIDTH * SCREEN_SCALE;
-    let height = SCREEN_HEIGHT * SCREEN_SCALE;
-    let size = LogicalSize::new(width as f64, height as f64);
+    let size = LogicalSize::new(
+        (SCREEN_WIDTH * SCREEN_SCALE) as f64,
+        (SCREEN_HEIGHT * SCREEN_SCALE) as f64,
+    );
     let window = WindowBuilder::new()
         .with_title("rot8")
         .with_resizable(false)
@@ -121,23 +117,21 @@ fn main() -> Result<()> {
 
     let window_size = window.inner_size();
     let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-    let mut pixels = Pixels::new(width, height, surface_texture)?;
+    let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture)?;
 
     let mut interpreter = Interpreter::new();
     interpreter.load(args.rom).expect("failed to read rom");
 
     let target_frametime = Duration::from_micros(1_000_000 / TARGET_FPS);
 
-    let mut should_update = false;
-
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
                 let frame_time = Instant::now();
 
-                if should_update {
-                    interpreter.update();
-                }
+                //if interpreter.should_update {
+                interpreter.update();
+                //}
                 interpreter.draw(pixels.get_frame());
 
                 if pixels
@@ -149,9 +143,9 @@ fn main() -> Result<()> {
                     return;
                 }
 
-                let wait_for = target_frametime - frame_time.elapsed();
-                sleep(wait_for);
-                should_update = false;
+                if let Some(wait_for) = target_frametime.checked_sub(frame_time.elapsed()) {
+                    sleep(wait_for);
+                }
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
@@ -161,7 +155,7 @@ fn main() -> Result<()> {
 
         if input.update(&event) {
             if input.key_pressed(VirtualKeyCode::Space) {
-                should_update = true;
+                interpreter.should_update = true;
             }
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
