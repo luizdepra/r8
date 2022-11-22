@@ -238,7 +238,7 @@ impl Machine {
             for ix in 0..SPRITE_WIDTH {
                 let pixel = data & (0x80 >> ix);
 
-                self.draw_pixel(pixel, ix, iy);
+                self.draw_pixel(pixel, x + ix, y + iy);
             }
         }
     }
@@ -249,7 +249,7 @@ impl Machine {
         if let Some(idx) = ram_index(x, y) {
             debug!("draw_pixel_ram_index, idx={}", idx);
 
-            if pixel == 1 && self.vram[idx] == 1 {
+            if pixel >= 1 && self.vram[idx] >= 1 {
                 self.v[CARRY] = 1;
             }
 
