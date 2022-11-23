@@ -5,7 +5,6 @@ use pixels::{Pixels, SurfaceTexture};
 use rotlib::{Keyboard, Machine};
 use std::fs;
 use std::path::PathBuf;
-use std::thread::sleep;
 use std::time::{Duration, Instant};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
@@ -123,28 +122,30 @@ fn main() -> Result<()> {
     interpreter.load(args.rom).expect("failed to read rom");
 
     let target_frametime = Duration::from_micros(1_000_000 / TARGET_CPS);
+    let mut last_time = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
-                let frame_time = Instant::now();
-
-                interpreter.update();
-                interpreter.draw(pixels.get_frame());
-
-                if pixels
-                    .render()
-                    .map_err(|e| error!("rendering failed: {}", e))
-                    .is_err()
-                {
-                    *control_flow = ControlFlow::Exit;
+                if last_time.elapsed() < target_frametime {
                     return;
                 }
 
-                if let Some(wait_for) = target_frametime.checked_sub(frame_time.elapsed()) {
-                    debug!("frame_sleep, wait_for={}", wait_for.as_micros());
-                    sleep(wait_for);
+                interpreter.update();
+
+                if interpreter.redraw {
+                    interpreter.draw(pixels.get_frame());
+
+                    if pixels
+                        .render()
+                        .map_err(|e| error!("rendering failed: {}", e))
+                        .is_err()
+                    {
+                        *control_flow = ControlFlow::Exit;
+                    }
                 }
+
+                last_time = Instant::now();
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
