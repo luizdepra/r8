@@ -20,7 +20,7 @@ const SCREEN_SCALE: u32 = 8;
 const WHITE: [u8; 4] = [0xFF, 0xFF, 0xFF, 0xFF];
 const BLACK: [u8; 4] = [0x00, 0x00, 0x00, 0xFF];
 
-const TARGET_FPS: u64 = 60;
+const TARGET_CPS: u64 = 500;
 
 /// A simple CHIP-8 interpreter made with rust, winit and pixels.
 #[derive(Parser, Debug)]
@@ -122,16 +122,14 @@ fn main() -> Result<()> {
     let mut interpreter = Interpreter::new();
     interpreter.load(args.rom).expect("failed to read rom");
 
-    let target_frametime = Duration::from_micros(1_000_000 / TARGET_FPS);
+    let target_frametime = Duration::from_micros(1_000_000 / TARGET_CPS);
 
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
                 let frame_time = Instant::now();
 
-                //if interpreter.should_update {
                 interpreter.update();
-                //}
                 interpreter.draw(pixels.get_frame());
 
                 if pixels
@@ -144,6 +142,7 @@ fn main() -> Result<()> {
                 }
 
                 if let Some(wait_for) = target_frametime.checked_sub(frame_time.elapsed()) {
+                    debug!("frame_sleep, wait_for={}", wait_for.as_micros());
                     sleep(wait_for);
                 }
             }

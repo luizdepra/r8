@@ -362,7 +362,7 @@ impl Machine {
         let x = x as usize;
         let y = y as usize;
 
-        self.v[x] |= self.v[y];
+        self.v[x] &= self.v[y];
 
         OperationResult::Next
     }
@@ -481,12 +481,12 @@ impl Machine {
     // Dxyn - DRW Vx, Vy, nibble
     // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
     fn op_dxyn(&mut self, x: u8, y: u8, n: u8) -> OperationResult {
-        let x = (self.v[x as usize] as usize) % SCREEN_WIDTH;
-        let y = (self.v[y as usize] as usize) % SCREEN_HEIGHT;
+        let sx = (self.v[x as usize] as usize) % SCREEN_WIDTH;
+        let sy = (self.v[y as usize] as usize) % SCREEN_HEIGHT;
 
         self.v[CARRY] = 0;
 
-        self.draw_sprite(x, y, n);
+        self.draw_sprite(sx, sy, n);
 
         OperationResult::NextAndRedraw
     }
@@ -615,5 +615,5 @@ fn ram_index(x: usize, y: usize) -> Option<usize> {
         return None;
     }
 
-    Some(y * SCREEN_HEIGHT + x)
+    Some(y * SCREEN_WIDTH + x)
 }
