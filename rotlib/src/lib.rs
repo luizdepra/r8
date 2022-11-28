@@ -4,5 +4,7 @@
 #![allow(dead_code)]
 
 mod keyboard;
-mod machines;
-mod operations;
+mod machine;
+
+pub use crate::keyboard::*;
+pub use crate::machine::*;

@@ -17,9 +17,9 @@ pub(crate) const FONT_CHAR_SIZE: usize = 5;
 /// Sprite width.
 pub(crate) const SPRITE_WIDTH: usize = 8;
 /// VRAM width.
-pub const VRAM_WIDTH: usize = 64;
+pub(crate) const VRAM_WIDTH: usize = 64;
 /// VRAM height.
-pub const VRAM_HEIGHT: usize = 32;
+pub(crate) const VRAM_HEIGHT: usize = 32;
 
 // Registers
 
