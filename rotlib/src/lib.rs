@@ -3,8 +3,6 @@
 //#![deny(clippy::all)]
 #![allow(dead_code)]
 
-mod constants;
 mod keyboard;
 mod machines;
 mod operations;
-mod types;

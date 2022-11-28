@@ -1,7 +1,10 @@
 //! CHIP-8's keyboard representation.
 
-use crate::constants::NUM_KEYS;
-use crate::types::Keys;
+/// Number of Keys.
+pub const NUM_KEYS: usize = 16;
+
+/// An array of [`bool`]s hat represents the state of every CHIP-8's keyboard keys.
+pub type Keys = [bool; NUM_KEYS];
 
 /// CHIP-8's keys.
 #[derive(Debug)]
