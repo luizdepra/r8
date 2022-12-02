@@ -3,6 +3,12 @@
 use log::debug;
 
 use crate::keyboard::Keys;
+use crate::operations::{
+    Op00e0, Op00ee, Op1nnn, Op2nnn, Op3xkk, Op4xkk, Op5xy0, Op6xkk, Op7xkk, Op8xy0, Op8xy1, Op8xy2,
+    Op8xy3, Op8xy4, Op8xy5, Op8xy6, Op8xy7, Op8xye, Op9xy0, OpInvalid, Opannn, Opbnnn, Opcxkk,
+    Opdxyn, Operation, OperationParams, OperationResult, Opex9e, Opexa1, Opfx07, Opfx0a, Opfx15,
+    Opfx18, Opfx1e, Opfx29, Opfx33, Opfx55, Opfx65,
+};
 
 // Sizes
 
@@ -25,6 +31,8 @@ pub(crate) const VRAM_HEIGHT: usize = 32;
 
 /// Number of general use registers.
 pub(crate) const GENERAL_REGISTER_NUMBER: usize = 16;
+/// Zero register index.
+pub(crate) const ZERO: usize = 0x0;
 /// Carry register index.
 pub(crate) const CARRY: usize = 0xF;
 /// Initial PC value.
@@ -68,38 +76,29 @@ pub(crate) type Stack = [u16; STACK_SIZE];
 /// An array of [`u8`]s that represents the CHIP-8's general use registers.
 pub(crate) type GeneralRegisterBank = [u8; GENERAL_REGISTER_NUMBER];
 
-#[derive(Debug)]
-enum OperationResult {
-    Next,
-    NextAndRedraw,
-    SkipNext,
-    JumpTo(usize),
-    WaitInput,
-}
-
 /// Represents the CHIP-8 machine.
 #[derive(Debug)]
 pub struct Machine {
     /// The machine RAM, where the ROM, font and etc aer loaded.
-    ram: Ram,
+    pub(crate) ram: Ram,
     /// The machine VRAM, used to represente the screen state.
-    vram: Vram,
+    pub(crate) vram: Vram,
     /// The machine call stack.
-    stack: Stack,
+    pub(crate) stack: Stack,
     /// The machine general register representation. These are the `vN` registers, where N is in range `[0, 8]`.
-    v: GeneralRegisterBank,
+    pub(crate) v: GeneralRegisterBank,
     /// The machine `I` register.
-    i: usize,
+    pub(crate) i: usize,
     /// The machine Program Counter.
-    pc: usize,
+    pub(crate) pc: usize,
     /// The machine Stack Pointer.
-    sp: usize,
+    pub(crate) sp: usize,
     /// The machine Delay Timer.
-    dt: u8,
+    pub(crate) dt: u8,
     /// The machine Sound Timer.
-    st: u8,
+    pub(crate) st: u8,
     /// A flag to tell if the screen should be redrawn.
-    draw: bool,
+    pub(crate) draw: bool,
 }
 
 impl Machine {
@@ -175,43 +174,46 @@ impl Machine {
         let y = nibbles.2;
         let n = nibbles.3;
 
-        let action = match nibbles {
-            (0x0, 0x0, 0xE, 0x0) => self.op_00e0(),
-            (0x0, 0x0, 0xE, 0xE) => self.op_00ee(),
-            (0x1, _, _, _) => self.op_1nnn(nnn),
-            (0x2, _, _, _) => self.op_2nnn(nnn),
-            (0x3, _, _, _) => self.op_3xkk(x, kk),
-            (0x4, _, _, _) => self.op_4xkk(x, kk),
-            (0x5, _, _, 0x0) => self.op_5xy0(x, y),
-            (0x6, _, _, _) => self.op_6xkk(x, kk),
-            (0x7, _, _, _) => self.op_7xkk(x, kk),
-            (0x8, _, _, 0x0) => self.op_8xy0(x, y),
-            (0x8, _, _, 0x1) => self.op_8xy1(x, y),
-            (0x8, _, _, 0x2) => self.op_8xy2(x, y),
-            (0x8, _, _, 0x3) => self.op_8xy3(x, y),
-            (0x8, _, _, 0x4) => self.op_8xy4(x, y),
-            (0x8, _, _, 0x5) => self.op_8xy5(x, y),
-            (0x8, _, _, 0x6) => self.op_8xy6(x, y),
-            (0x8, _, _, 0x7) => self.op_8xy7(x, y),
-            (0x8, _, _, 0xE) => self.op_8xye(x, y),
-            (0x9, _, _, 0x0) => self.op_9xy0(x, y),
-            (0xA, _, _, _) => self.op_annn(nnn),
-            (0xB, _, _, _) => self.op_bnnn(nnn),
-            (0xC, _, _, _) => self.op_cxkk(x, kk),
-            (0xD, _, _, _) => self.op_dxyn(x, y, n),
-            (0xE, _, 0x9, 0xE) => self.op_ex9e(x, keys),
-            (0xE, _, 0xA, 0x1) => self.op_exa1(x, keys),
-            (0xF, _, 0x0, 0x7) => self.op_fx07(x),
-            (0xF, _, 0x0, 0xA) => self.op_fx0a(x, keys),
-            (0xF, _, 0x1, 0x5) => self.op_fx15(x),
-            (0xF, _, 0x1, 0x8) => self.op_fx18(x),
-            (0xF, _, 0x1, 0xE) => self.op_fx1e(x),
-            (0xF, _, 0x2, 0x9) => self.op_fx29(x),
-            (0xF, _, 0x3, 0x3) => self.op_fx33(x),
-            (0xF, _, 0x5, 0x5) => self.op_fx55(x),
-            (0xF, _, 0x6, 0x5) => self.op_fx65(x),
-            _ => OperationResult::Next,
+        let params = OperationParams::new(nnn, kk, x, y, n, keys);
+        let op: Box<dyn Operation> = match nibbles {
+            (0x0, 0x0, 0xE, 0x0) => Box::new(Op00e0),
+            (0x0, 0x0, 0xE, 0xE) => Box::new(Op00ee),
+            (0x1, _, _, _) => Box::new(Op1nnn),
+            (0x2, _, _, _) => Box::new(Op2nnn),
+            (0x3, _, _, _) => Box::new(Op3xkk),
+            (0x4, _, _, _) => Box::new(Op4xkk),
+            (0x5, _, _, 0x0) => Box::new(Op5xy0),
+            (0x6, _, _, _) => Box::new(Op6xkk),
+            (0x7, _, _, _) => Box::new(Op7xkk),
+            (0x8, _, _, 0x0) => Box::new(Op8xy0),
+            (0x8, _, _, 0x1) => Box::new(Op8xy1),
+            (0x8, _, _, 0x2) => Box::new(Op8xy2),
+            (0x8, _, _, 0x3) => Box::new(Op8xy3),
+            (0x8, _, _, 0x4) => Box::new(Op8xy4),
+            (0x8, _, _, 0x5) => Box::new(Op8xy5),
+            (0x8, _, _, 0x6) => Box::new(Op8xy6),
+            (0x8, _, _, 0x7) => Box::new(Op8xy7),
+            (0x8, _, _, 0xE) => Box::new(Op8xye),
+            (0x9, _, _, 0x0) => Box::new(Op9xy0),
+            (0xA, _, _, _) => Box::new(Opannn),
+            (0xB, _, _, _) => Box::new(Opbnnn),
+            (0xC, _, _, _) => Box::new(Opcxkk),
+            (0xD, _, _, _) => Box::new(Opdxyn),
+            (0xE, _, 0x9, 0xE) => Box::new(Opex9e),
+            (0xE, _, 0xA, 0x1) => Box::new(Opexa1),
+            (0xF, _, 0x0, 0x7) => Box::new(Opfx07),
+            (0xF, _, 0x0, 0xA) => Box::new(Opfx0a),
+            (0xF, _, 0x1, 0x5) => Box::new(Opfx15),
+            (0xF, _, 0x1, 0x8) => Box::new(Opfx18),
+            (0xF, _, 0x1, 0xE) => Box::new(Opfx1e),
+            (0xF, _, 0x2, 0x9) => Box::new(Opfx29),
+            (0xF, _, 0x3, 0x3) => Box::new(Opfx33),
+            (0xF, _, 0x5, 0x5) => Box::new(Opfx55),
+            (0xF, _, 0x6, 0x5) => Box::new(Opfx65),
+            _ => Box::new(OpInvalid),
         };
+
+        let action = op.exec(self, params);
 
         debug!("run_instruction_result, result={:?}", action);
 
@@ -236,388 +238,6 @@ impl Machine {
             OperationResult::WaitInput => false,
         }
     }
-
-    /// Draws a sprite in the machine VRAM.
-    fn draw_sprite(&mut self, x: usize, y: usize, n: u8) {
-        debug!("draw_sprite, x={}, y={}, n={}", x, y, n);
-
-        for iy in 0..(n as usize) {
-            let data = self.ram[self.i + iy];
-            for ix in 0..SPRITE_WIDTH {
-                let value = data & (0x80 >> ix) > 0;
-
-                self.draw_pixel(value, x + ix, y + iy);
-            }
-        }
-    }
-
-    /// Draws a pixel in the machine VRAM.
-    fn draw_pixel(&mut self, value: bool, x: usize, y: usize) {
-        debug!("draw_pixel, x={}, y={}, value={}", x, y, value);
-
-        if let Some(idx) = vram_index(x, y) {
-            debug!("draw_pixel_ram_index, idx={}", idx);
-
-            if value && self.vram[idx] {
-                self.v[CARRY] = 1;
-            }
-
-            self.vram[idx] ^= value;
-        }
-    }
-
-    /// Implements the 00E0 (CLS) operation. Clear the display.
-    fn op_00e0(&mut self) -> OperationResult {
-        debug!("op_00e0");
-
-        self.vram = [false; VRAM_WIDTH * VRAM_HEIGHT];
-
-        OperationResult::Next
-    }
-
-    /// Implements the 00EE (RET) operation. Return from a subroutine.
-    fn op_00ee(&mut self) -> OperationResult {
-        debug!("op_00ee");
-
-        self.pc = self.stack[self.sp as usize] as usize;
-        self.sp -= 1;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 1nnn (JP addr) operation. Jump to location `nnn`.
-    fn op_1nnn(&mut self, nnn: u16) -> OperationResult {
-        debug!("op_1nnn, nnn={:#06x?}", nnn);
-
-        OperationResult::JumpTo(nnn as usize)
-    }
-
-    /// Implements the 2nnn (CALL addr) operation. Call subroutine at `nnn`.
-    fn op_2nnn(&mut self, nnn: u16) -> OperationResult {
-        debug!("op_2nnn, nnn={:#06x?}", nnn);
-
-        self.sp += 1;
-        self.stack[self.sp as usize] = self.pc as u16;
-
-        OperationResult::JumpTo(nnn as usize)
-    }
-
-    /// Implements the 3xkk (SE Vx, byte) operation. Skip next instruction if `Vx = kk`.
-    fn op_3xkk(&mut self, x: u8, kk: u8) -> OperationResult {
-        debug!("op_3xkk, x={}, kk={}", x, kk);
-
-        if self.v[x as usize] == kk {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the 4xkk (SNE Vx, byte) operation. Skip next instruction if `Vx != kk`.
-    fn op_4xkk(&mut self, x: u8, kk: u8) -> OperationResult {
-        debug!("op_4xkk, x={}, kk={}", x, kk);
-
-        if self.v[x as usize] != kk {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the 5xy0 (SE Vx, Vy) operation. Skip next instruction if `Vx = Vy`.
-    fn op_5xy0(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_5xy0, x={}, y={}", x, y);
-
-        if self.v[x as usize] == self.v[y as usize] {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the 6xkk (LD Vx, byte) operation. Set `Vx = kk`.
-    fn op_6xkk(&mut self, x: u8, kk: u8) -> OperationResult {
-        debug!("op_6xkk, x={}, kk={}", x, kk);
-
-        self.v[x as usize] = kk;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 7xkk (ADD Vx, byte) operation. Set `Vx = Vx + kk`.
-    fn op_7xkk(&mut self, x: u8, kk: u8) -> OperationResult {
-        debug!("op_7xkk, x={}, kk={}", x, kk);
-
-        let ix = x as usize;
-        self.v[ix] = self.v[ix].wrapping_add(kk);
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy0 (LD Vx, Vy) operation. Set `Vx = Vy`.
-    fn op_8xy0(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy0, x={}, y={}", x, y);
-
-        self.v[x as usize] = self.v[y as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy1 (OR Vx, Vy) operation. Set `Vx = Vx OR Vy`.
-    fn op_8xy1(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy1, x={}, y={}", x, y);
-
-        self.v[x as usize] |= self.v[y as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy2 (AND Vx, Vy) operation. Set `Vx = Vx AND Vy`.
-    fn op_8xy2(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy2, x={}, y={}", x, y);
-
-        self.v[x as usize] &= self.v[y as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy3 (XOR Vx, Vy) operation. Set `Vx = Vx XOR Vy`.
-    fn op_8xy3(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy3, x={}, y={}", x, y);
-
-        self.v[x as usize] ^= self.v[y as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy4 (ADD Vx, Vy) operation. Set `Vx = Vx + Vy`, set `VF = carry`.
-    fn op_8xy4(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy4, x={}, y={}", x, y);
-
-        let ix = x as usize;
-        let iy = y as usize;
-        let result = self.v[ix].overflowing_add(self.v[iy]);
-        self.v[ix] = result.0;
-        self.v[CARRY] = result.1 as u8;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy5 (SUB Vx, Vy) operation. Set `Vx = Vx - Vy`, set `VF = NOT borrow`.
-    fn op_8xy5(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy5, x={}, y={}", x, y);
-
-        let ix = x as usize;
-        let iy = y as usize;
-        let result = self.v[ix].overflowing_sub(self.v[iy]);
-        self.v[ix] = result.0;
-        self.v[CARRY] = !result.1 as u8;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy6 (SHR Vx {, Vy}) operation. Set `Vx = Vx SHR 1`.
-    ///
-    /// Ignoring Vy value following modern interpreters implementation.
-    fn op_8xy6(&mut self, x: u8, _: u8) -> OperationResult {
-        debug!("op_8xy6, x={}", x);
-
-        let ix = x as usize;
-        let result = self.v[ix].overflowing_shr(1);
-        self.v[ix] = result.0;
-        self.v[CARRY] = result.1 as u8;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xy7 (SUBN Vx, Vy) operation. Set `Vx = Vy - Vx`, set `VF = NOT borrow`.
-    fn op_8xy7(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_8xy7, x={}, y={}", x, y);
-
-        let ix = x as usize;
-        let iy = y as usize;
-        let result = self.v[iy].overflowing_sub(self.v[ix]);
-        self.v[ix] = result.0;
-        self.v[CARRY] = !result.1 as u8;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 8xyE (SHL Vx {, Vy}) operation. Set `Vx = Vx SHL 1`.
-    ///
-    /// Ignoring Vy value following modern interpreters implementation.
-    fn op_8xye(&mut self, x: u8, _: u8) -> OperationResult {
-        debug!("op_8xye, x={}", x);
-
-        let ix = x as usize;
-
-        let result = self.v[ix].overflowing_shl(1);
-        self.v[ix] = result.0;
-        self.v[CARRY] = result.1 as u8;
-
-        OperationResult::Next
-    }
-
-    /// Implements the 9xy0 (SNE Vx, Vy) operation. Skip next instruction if `Vx != Vy`.
-    fn op_9xy0(&mut self, x: u8, y: u8) -> OperationResult {
-        debug!("op_9xy0, x={}, y={}", x, y);
-
-        if self.v[x as usize] != self.v[y as usize] {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the Annn (LD I, addr) operation. Set `I = nnn`.
-    fn op_annn(&mut self, nnn: u16) -> OperationResult {
-        debug!("op_annn, nnn={}", nnn);
-
-        self.i = nnn as usize;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Bnnn (JP V0, addr) operation. Jump to location `nnn + V0`.
-    fn op_bnnn(&mut self, nnn: u16) -> OperationResult {
-        debug!("op_bnnn, nnn={}", nnn);
-
-        OperationResult::JumpTo((nnn + self.v[0x0] as u16) as usize)
-    }
-
-    /// Implements the Cxkk (RND Vx, byte) operation. Set `Vx = random byte AND kk`.
-    fn op_cxkk(&mut self, x: u8, kk: u8) -> OperationResult {
-        debug!("op_cxkk, x={}, kk={}", x, kk);
-
-        let value = rand::random::<u8>();
-        self.v[x as usize] = value & kk;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Dxyn (DRW Vx, Vy, nibble) operation. Display a n-byte sprite starting at memory location `I` at `(Vx, Vy)`, set `VF = collision`.
-    fn op_dxyn(&mut self, x: u8, y: u8, n: u8) -> OperationResult {
-        debug!("op_dxyn, x={}, y={}, n={}", x, y, n);
-
-        let sx = (self.v[x as usize] as usize) % VRAM_WIDTH;
-        let sy = (self.v[y as usize] as usize) % VRAM_HEIGHT;
-
-        self.v[CARRY] = 0;
-
-        self.draw_sprite(sx, sy, n);
-
-        OperationResult::NextAndRedraw
-    }
-
-    /// Implements the Ex9E (SKP Vx) operation. Skip next instruction if key with the value of `Vx` is pressed.
-    fn op_ex9e(&mut self, x: u8, keys: &Keys) -> OperationResult {
-        debug!("op_ex9e, x={}, keys={:?}", x, keys);
-
-        if keys[self.v[x as usize] as usize] {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the ExA1 (SKNP Vx) operation. Skip next instruction if key with the value of `Vx` is not pressed.
-    fn op_exa1(&mut self, x: u8, keys: &Keys) -> OperationResult {
-        debug!("op_exa1, x={}, keys={:?}", x, keys);
-
-        if !keys[self.v[x as usize] as usize] {
-            return OperationResult::SkipNext;
-        }
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx07 (LD Vx, DT) operation. Set `Vx = delay timer value`.
-    fn op_fx07(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx07, x={}, dt={}", x, self.dt);
-
-        self.v[x as usize] = self.dt;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx0A (LD Vx, K) operation. Wait for a key press, store the value of the key in `Vx`.
-    fn op_fx0a(&mut self, x: u8, keys: &Keys) -> OperationResult {
-        debug!("op_fx0a, x={}, keys={:?}", x, keys);
-
-        if let Some(pos) = keys.iter().position(|&v| v) {
-            self.v[x as usize] = pos as u8;
-            return OperationResult::Next;
-        }
-
-        OperationResult::WaitInput
-    }
-
-    /// Implements the Fx15 (LD DT, Vx) operation. Set `delay timer = Vx`.
-    fn op_fx15(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx15, x={}", x);
-
-        self.dt = self.v[x as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx18 (LD ST, Vx) operation. Set `sound timer = Vx`.
-    fn op_fx18(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx15, x={}", x);
-
-        self.st = self.v[x as usize];
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx1E (ADD I, Vx) operation. Set `I = I + Vx`.
-    fn op_fx1e(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx1e, x={}", x);
-
-        self.i += self.v[x as usize] as usize;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx29 (LD F, Vx) operation. Set `I = location of sprite for digit Vx`.
-    fn op_fx29(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx29, x={}", x);
-
-        self.i = self.v[x as usize] as usize * FONT_CHAR_SIZE;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx33 (LD B, Vx) operation. Store BCD representation of `Vx` in memory locations `I`, `I+1`, and `I+2`.
-    fn op_fx33(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx33, x={}", x);
-
-        let vx = self.v[x as usize];
-
-        self.ram[self.i] = vx / 100 % 10;
-        self.ram[self.i + 1] = vx / 10 % 10;
-        self.ram[self.i + 2] = vx % 10;
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx55 (LD [I], Vx) operation. Store registers `V0` through `Vx` in memory starting at location `I`.
-    fn op_fx55(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx55, x={}", x);
-
-        (0..=x).for_each(|n| self.ram[self.i + n as usize] = self.v[n as usize]);
-
-        OperationResult::Next
-    }
-
-    /// Implements the Fx65 (LD Vx, [I]) operation. Read registers `V0` through `Vx` from memory starting at location `I`.
-    fn op_fx65(&mut self, x: u8) -> OperationResult {
-        debug!("op_fx65, x={}", x);
-
-        (0..=x).for_each(|n| self.v[n as usize] = self.ram[self.i + n as usize]);
-
-        OperationResult::Next
-    }
 }
 
 impl Default for Machine {
@@ -639,13 +259,4 @@ impl Default for Machine {
             draw: false,
         }
     }
-}
-
-/// Returns the computed VRAM index using the provided `x` and `y` screen values.
-fn vram_index(x: usize, y: usize) -> Option<usize> {
-    if x >= VRAM_WIDTH || y >= VRAM_HEIGHT {
-        return None;
-    }
-
-    Some(y * VRAM_WIDTH + x)
 }

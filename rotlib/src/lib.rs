@@ -5,6 +5,7 @@
 
 mod keyboard;
 mod machine;
+mod operations;
 
 pub use crate::keyboard::*;
 pub use crate::machine::*;
