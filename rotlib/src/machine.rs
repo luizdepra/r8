@@ -3,12 +3,7 @@
 use log::debug;
 
 use crate::keyboard::Keys;
-use crate::operations::{
-    Op00e0, Op00ee, Op1nnn, Op2nnn, Op3xkk, Op4xkk, Op5xy0, Op6xkk, Op7xkk, Op8xy0, Op8xy1, Op8xy2,
-    Op8xy3, Op8xy4, Op8xy5, Op8xy6, Op8xy7, Op8xye, Op9xy0, OpInvalid, Opannn, Opbnnn, Opcxkk,
-    Opdxyn, Operation, OperationParams, OperationResult, Opex9e, Opexa1, Opfx07, Opfx0a, Opfx15,
-    Opfx18, Opfx1e, Opfx29, Opfx33, Opfx55, Opfx65,
-};
+use crate::operations::*;
 
 // Sizes
 
@@ -174,46 +169,45 @@ impl Machine {
         let y = nibbles.2;
         let n = nibbles.3;
 
-        let params = OperationParams::new(nnn, kk, x, y, n, keys);
         let op: Box<dyn Operation> = match nibbles {
-            (0x0, 0x0, 0xE, 0x0) => Box::new(Op00e0),
-            (0x0, 0x0, 0xE, 0xE) => Box::new(Op00ee),
-            (0x1, _, _, _) => Box::new(Op1nnn),
-            (0x2, _, _, _) => Box::new(Op2nnn),
-            (0x3, _, _, _) => Box::new(Op3xkk),
-            (0x4, _, _, _) => Box::new(Op4xkk),
-            (0x5, _, _, 0x0) => Box::new(Op5xy0),
-            (0x6, _, _, _) => Box::new(Op6xkk),
-            (0x7, _, _, _) => Box::new(Op7xkk),
-            (0x8, _, _, 0x0) => Box::new(Op8xy0),
-            (0x8, _, _, 0x1) => Box::new(Op8xy1),
-            (0x8, _, _, 0x2) => Box::new(Op8xy2),
-            (0x8, _, _, 0x3) => Box::new(Op8xy3),
-            (0x8, _, _, 0x4) => Box::new(Op8xy4),
-            (0x8, _, _, 0x5) => Box::new(Op8xy5),
-            (0x8, _, _, 0x6) => Box::new(Op8xy6),
-            (0x8, _, _, 0x7) => Box::new(Op8xy7),
-            (0x8, _, _, 0xE) => Box::new(Op8xye),
-            (0x9, _, _, 0x0) => Box::new(Op9xy0),
-            (0xA, _, _, _) => Box::new(Opannn),
-            (0xB, _, _, _) => Box::new(Opbnnn),
-            (0xC, _, _, _) => Box::new(Opcxkk),
-            (0xD, _, _, _) => Box::new(Opdxyn),
-            (0xE, _, 0x9, 0xE) => Box::new(Opex9e),
-            (0xE, _, 0xA, 0x1) => Box::new(Opexa1),
-            (0xF, _, 0x0, 0x7) => Box::new(Opfx07),
-            (0xF, _, 0x0, 0xA) => Box::new(Opfx0a),
-            (0xF, _, 0x1, 0x5) => Box::new(Opfx15),
-            (0xF, _, 0x1, 0x8) => Box::new(Opfx18),
-            (0xF, _, 0x1, 0xE) => Box::new(Opfx1e),
-            (0xF, _, 0x2, 0x9) => Box::new(Opfx29),
-            (0xF, _, 0x3, 0x3) => Box::new(Opfx33),
-            (0xF, _, 0x5, 0x5) => Box::new(Opfx55),
-            (0xF, _, 0x6, 0x5) => Box::new(Opfx65),
-            _ => Box::new(OpInvalid),
+            (0x0, 0x0, 0xE, 0x0) => Box::new(Op00e0::new()),
+            (0x0, 0x0, 0xE, 0xE) => Box::new(Op00ee::new()),
+            (0x1, _, _, _) => Box::new(Op1nnn::new(nnn)),
+            (0x2, _, _, _) => Box::new(Op2nnn::new(nnn)),
+            (0x3, _, _, _) => Box::new(Op3xkk::new(x, kk)),
+            (0x4, _, _, _) => Box::new(Op4xkk::new(x, kk)),
+            (0x5, _, _, 0x0) => Box::new(Op5xy0::new(x, y)),
+            (0x6, _, _, _) => Box::new(Op6xkk::new(x, kk)),
+            (0x7, _, _, _) => Box::new(Op7xkk::new(x, kk)),
+            (0x8, _, _, 0x0) => Box::new(Op8xy0::new(x, y)),
+            (0x8, _, _, 0x1) => Box::new(Op8xy1::new(x, y)),
+            (0x8, _, _, 0x2) => Box::new(Op8xy2::new(x, y)),
+            (0x8, _, _, 0x3) => Box::new(Op8xy3::new(x, y)),
+            (0x8, _, _, 0x4) => Box::new(Op8xy4::new(x, y)),
+            (0x8, _, _, 0x5) => Box::new(Op8xy5::new(x, y)),
+            (0x8, _, _, 0x6) => Box::new(Op8xy6::new(x, y)),
+            (0x8, _, _, 0x7) => Box::new(Op8xy7::new(x, y)),
+            (0x8, _, _, 0xE) => Box::new(Op8xye::new(x, y)),
+            (0x9, _, _, 0x0) => Box::new(Op9xy0::new(x, y)),
+            (0xA, _, _, _) => Box::new(Opannn::new(nnn)),
+            (0xB, _, _, _) => Box::new(Opbnnn::new(nnn)),
+            (0xC, _, _, _) => Box::new(Opcxkk::new(x, kk)),
+            (0xD, _, _, _) => Box::new(Opdxyn::new(x, y, n)),
+            (0xE, _, 0x9, 0xE) => Box::new(Opex9e::new(x, keys)),
+            (0xE, _, 0xA, 0x1) => Box::new(Opexa1::new(x, keys)),
+            (0xF, _, 0x0, 0x7) => Box::new(Opfx07::new(x)),
+            (0xF, _, 0x0, 0xA) => Box::new(Opfx0a::new(x, keys)),
+            (0xF, _, 0x1, 0x5) => Box::new(Opfx15::new(x)),
+            (0xF, _, 0x1, 0x8) => Box::new(Opfx18::new(x)),
+            (0xF, _, 0x1, 0xE) => Box::new(Opfx1e::new(x)),
+            (0xF, _, 0x2, 0x9) => Box::new(Opfx29::new(x)),
+            (0xF, _, 0x3, 0x3) => Box::new(Opfx33::new(x)),
+            (0xF, _, 0x5, 0x5) => Box::new(Opfx55::new(x)),
+            (0xF, _, 0x6, 0x5) => Box::new(Opfx65::new(x)),
+            _ => Box::new(OpInvalid::new()),
         };
 
-        let action = op.exec(self, params);
+        let action = op.exec(self);
 
         debug!("run_instruction_result, result={:?}", action);
 
