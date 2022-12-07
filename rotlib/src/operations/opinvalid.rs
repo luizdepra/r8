@@ -23,3 +23,18 @@ impl Operation for OpInvalid {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opinvalid {
+    use super::*;
+
+    #[test]
+    fn test_opinvalid_exec() {
+        let mut machine = Machine::default();
+
+        let op = OpInvalid::new();
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+    }
+}

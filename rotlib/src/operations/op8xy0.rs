@@ -31,3 +31,27 @@ impl Operation for Op8xy0 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op8xy0 {
+    use super::*;
+
+    #[test]
+    fn test_op8xy0_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let y = 0x2;
+
+        machine.v[y as usize] = 0xF;
+
+        let op = Op8xy0::new(x, y);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.v[x as usize], machine.v[y as usize],
+            "machine v[{:#02x?}] value should be same as v[{:#02x?}] value",
+            x, y
+        );
+    }
+}

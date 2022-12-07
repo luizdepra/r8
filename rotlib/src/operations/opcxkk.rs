@@ -1,6 +1,7 @@
 //! The implementation of the Cxkk (RND Vx, byte) operation.
 
 use log::debug;
+use rand::Rng;
 
 use crate::Machine;
 
@@ -26,9 +27,39 @@ impl Operation for Opcxkk {
     fn exec(&self, machine: &mut Machine) -> OperationResult {
         debug!("op_cxkk, x={}, kk={}", self.x, self.kk);
 
-        let value = rand::random::<u8>();
+        let value = machine.rng.gen::<u8>();
         machine.v[self.x as usize] = value & self.kk;
 
         OperationResult::Next
+    }
+}
+
+#[cfg(test)]
+mod test_opcxkk {
+    use rand::rngs::mock::StepRng;
+
+    use super::*;
+
+    #[test]
+    fn test_opcxkk_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let kk = 0xA;
+
+        machine.rng = Box::new(StepRng::new(4, 2));
+
+        let op = Opcxkk::new(x, kk);
+
+        let expected = [0u8, 2, 8, 10, 8];
+        for expc in expected {
+            let result = op.exec(&mut machine);
+
+            assert_eq!(result, OperationResult::Next, "should return Next");
+            assert_eq!(
+                machine.v[x as usize], expc,
+                "machine v[{}] should be {}",
+                x, expc
+            );
+        }
     }
 }

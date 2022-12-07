@@ -27,3 +27,23 @@ impl Operation for Op1nnn {
         OperationResult::JumpTo(self.nnn as usize)
     }
 }
+
+#[cfg(test)]
+mod test_op1nnn {
+    use super::*;
+
+    #[test]
+    fn test_op1nnn_exec() {
+        let mut machine = Machine::default();
+        let nnn = 0xA;
+
+        let op = Op1nnn::new(nnn);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(
+            result,
+            OperationResult::JumpTo(nnn as usize),
+            "should return JumpTo(nnn)"
+        );
+    }
+}

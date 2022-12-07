@@ -33,3 +33,40 @@ impl Operation for Opexa1<'_> {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opexa1 {
+    use crate::keyboard::Key;
+
+    use super::*;
+
+    #[test]
+    fn test_opexa1_exec_should_skip() {
+        let mut machine = Machine::default();
+        let mut keys = Keys::default();
+        let x = 0x1;
+
+        machine.v[x as usize] = Key::_3 as u8;
+        keys[Key::_3 as usize] = false;
+
+        let op = Opexa1::new(x, &keys);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::SkipNext, "should return SkipNext");
+    }
+
+    #[test]
+    fn test_opexa1_exec_should_not_skip() {
+        let mut machine = Machine::default();
+        let mut keys = Keys::default();
+        let x = 0x1;
+
+        machine.v[x as usize] = Key::_3 as u8;
+        keys[Key::_3 as usize] = true;
+
+        let op = Opexa1::new(x, &keys);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+    }
+}

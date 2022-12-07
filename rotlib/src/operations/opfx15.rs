@@ -29,3 +29,27 @@ impl Operation for Opfx15 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opfx15 {
+    use super::*;
+
+    #[test]
+    fn test_opfx15_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+
+        machine.v[x as usize] = 0xC;
+        machine.dt = 0x0;
+
+        let op = Opfx15::new(x);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.dt, machine.v[x as usize],
+            "machine delay timer value should be same as v[{:#02x?}]",
+            x
+        );
+    }
+}

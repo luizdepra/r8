@@ -74,7 +74,7 @@ pub(crate) use crate::operations::opfx55::Opfx55;
 pub(crate) use crate::operations::opfx65::Opfx65;
 pub(crate) use crate::operations::opinvalid::OpInvalid;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum OperationResult {
     Next,
     NextAndRedraw,

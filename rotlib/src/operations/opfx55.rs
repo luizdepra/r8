@@ -29,3 +29,41 @@ impl Operation for Opfx55 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opfx55 {
+    use crate::CARRY;
+
+    use super::*;
+
+    #[test]
+    fn test_opfx55_exec() {
+        let mut machine = Machine::default();
+        let x = 0x5u8;
+
+        machine.i = 0xFF0;
+        (0..=x as usize).for_each(|n| machine.v[n] = n as u8);
+
+        let op = Opfx55::new(x);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        (0..=x as usize).for_each(|n| {
+            assert_eq!(
+                machine.ram[machine.i + n],
+                n as u8,
+                "machine ram at i+{} should be {}",
+                n,
+                n
+            )
+        });
+        ((x as usize + 1)..=CARRY).for_each(|n| {
+            assert_eq!(
+                machine.ram[machine.i + n],
+                0,
+                "machine ram at i+{} should be 0",
+                n
+            )
+        });
+    }
+}

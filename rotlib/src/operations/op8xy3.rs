@@ -31,3 +31,33 @@ impl Operation for Op8xy3 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op8xy3 {
+    use super::*;
+
+    #[test]
+    fn test_op8xy3_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let y = 0x2;
+
+        machine.v[x as usize] = 0x3;
+        machine.v[y as usize] = 0x9;
+
+        let op = Op8xy3::new(x, y);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.v[x as usize], 0xA,
+            "machine v[{:#02x?}] value should be updated with a bitwise XOR with v[{:#02x?}] value",
+            x, y
+        );
+        assert_eq!(
+            machine.v[y as usize], 0x9,
+            "machine v[{:#02x?}] value should not change",
+            y
+        );
+    }
+}

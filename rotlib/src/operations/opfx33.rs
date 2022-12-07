@@ -33,3 +33,39 @@ impl Operation for Opfx33 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opfx33 {
+    use super::*;
+
+    #[test]
+    fn test_opfx33_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+
+        machine.i = 0xFF0;
+        machine.v[x as usize] = 0xFF;
+
+        let op = Opfx33::new(x);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.ram[machine.i], 0x2,
+            "machine ram value at i should be the hundred part of v[{:#02x?}]",
+            x
+        );
+        assert_eq!(
+            machine.ram[machine.i + 1],
+            0x5,
+            "machine ram value at i+1 should be the hundred part of v[{:#02x?}]",
+            x
+        );
+        assert_eq!(
+            machine.ram[machine.i + 2],
+            0x5,
+            "machine ram value at i+2 should be the hundred part of v[{:#02x?}]",
+            x
+        );
+    }
+}

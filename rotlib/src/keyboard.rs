@@ -61,7 +61,7 @@ impl Default for Keyboard {
 }
 
 #[cfg(test)]
-mod test_super {
+mod test_keyboard {
     use super::*;
 
     #[test]
@@ -93,13 +93,13 @@ mod test_super {
             for i in 0..NUM_KEYS {
                 let expected = i == v as usize;
 
-                assert_eq!(keys[i], expected)
+                assert_eq!(keys[i], expected, "keys {} value should be {}", i, expected)
             }
 
             keyboard.release_key(v);
             let keys = keyboard.keys_as_ref();
             for i in 0..NUM_KEYS {
-                assert_eq!(keys[i], false)
+                assert_eq!(keys[i], false, "keys {} value should be false", i)
             }
         }
     }

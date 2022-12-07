@@ -1,6 +1,9 @@
 //! CHIP-8's machine representation.
 
+use std::fmt;
+
 use log::debug;
+use rand::RngCore;
 
 use crate::keyboard::Keys;
 use crate::operations::*;
@@ -72,7 +75,6 @@ pub(crate) type Stack = [u16; STACK_SIZE];
 pub(crate) type GeneralRegisterBank = [u8; GENERAL_REGISTER_NUMBER];
 
 /// Represents the CHIP-8 machine.
-#[derive(Debug)]
 pub struct Machine {
     /// The machine RAM, where the ROM, font and etc aer loaded.
     pub(crate) ram: Ram,
@@ -94,6 +96,8 @@ pub struct Machine {
     pub(crate) st: u8,
     /// A flag to tell if the screen should be redrawn.
     pub(crate) draw: bool,
+    /// A random number generator.
+    pub(crate) rng: Box<dyn RngCore>,
 }
 
 impl Machine {
@@ -185,9 +189,9 @@ impl Machine {
             (0x8, _, _, 0x3) => Box::new(Op8xy3::new(x, y)),
             (0x8, _, _, 0x4) => Box::new(Op8xy4::new(x, y)),
             (0x8, _, _, 0x5) => Box::new(Op8xy5::new(x, y)),
-            (0x8, _, _, 0x6) => Box::new(Op8xy6::new(x, y)),
+            (0x8, _, _, 0x6) => Box::new(Op8xy6::new(x)),
             (0x8, _, _, 0x7) => Box::new(Op8xy7::new(x, y)),
-            (0x8, _, _, 0xE) => Box::new(Op8xye::new(x, y)),
+            (0x8, _, _, 0xE) => Box::new(Op8xye::new(x)),
             (0x9, _, _, 0x0) => Box::new(Op9xy0::new(x, y)),
             (0xA, _, _, _) => Box::new(Opannn::new(nnn)),
             (0xB, _, _, _) => Box::new(Opbnnn::new(nnn)),
@@ -234,6 +238,23 @@ impl Machine {
     }
 }
 
+impl fmt::Debug for Machine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Machine")
+            .field("ram", &self.ram)
+            .field("vram", &self.vram)
+            .field("stack", &self.stack)
+            .field("v", &self.v)
+            .field("i", &self.i)
+            .field("pc", &self.pc)
+            .field("sp", &self.sp)
+            .field("dt", &self.dt)
+            .field("st", &self.st)
+            .field("draw", &self.draw)
+            .finish()
+    }
+}
+
 impl Default for Machine {
     /// Creates a [`Machine`] with the default values.
     fn default() -> Self {
@@ -251,6 +272,7 @@ impl Default for Machine {
             dt: 0,
             st: 0,
             draw: false,
+            rng: Box::new(rand::thread_rng()),
         }
     }
 }

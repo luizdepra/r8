@@ -33,3 +33,38 @@ impl Operation for Op5xy0 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op5xy0 {
+    use super::*;
+
+    #[test]
+    fn test_op5xy0_exec_should_not_skip() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let y = 0x2;
+
+        machine.v[x as usize] = 0xA;
+        machine.v[y as usize] = 0xF;
+
+        let op = Op5xy0::new(x, y);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+    }
+
+    #[test]
+    fn test_op5xy0_exec_should_skip() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let y = 0x2;
+
+        machine.v[x as usize] = 0xA;
+        machine.v[y as usize] = 0xA;
+
+        let op = Op5xy0::new(x, y);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::SkipNext, "should return SkipNext");
+    }
+}

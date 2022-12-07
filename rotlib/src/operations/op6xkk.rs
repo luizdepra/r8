@@ -31,3 +31,25 @@ impl Operation for Op6xkk {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op6xkk {
+    use super::*;
+
+    #[test]
+    fn test_op6xkk_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+        let kk = 0xA;
+
+        let op = Op6xkk::new(x, kk);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.v[x as usize], kk,
+            "machine v[{:#02x?}] value should be {}",
+            x, kk
+        );
+    }
+}

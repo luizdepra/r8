@@ -12,14 +12,12 @@ use super::{Operation, OperationResult};
 pub(crate) struct Op8xy6 {
     /// The `x` operation parameter.
     x: u8,
-    /// The `y` operation parameter.
-    y: u8,
 }
 
 impl Op8xy6 {
     // Creates a new Op8xy6.
-    pub(crate) fn new(x: u8, y: u8) -> Self {
-        Self { x, y }
+    pub(crate) fn new(x: u8) -> Self {
+        Self { x }
     }
 }
 
@@ -29,10 +27,37 @@ impl Operation for Op8xy6 {
         debug!("op_8xy6, x={}", self.x);
 
         let ix = self.x as usize;
-        let result = machine.v[ix].overflowing_shr(1);
-        machine.v[ix] = result.0;
-        machine.v[CARRY] = result.1 as u8;
+        machine.v[CARRY] = machine.v[ix] & 0x01;
+        machine.v[ix] >>= 0x01;
 
         OperationResult::Next
+    }
+}
+
+#[cfg(test)]
+mod test_op8xy6 {
+    use super::*;
+
+    #[test]
+    fn test_op8xy6_exec() {
+        let mut machine = Machine::default();
+        let x = 0x1;
+
+        machine.v[x as usize] = 0x2;
+
+        let op = Op8xy6::new(x);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.v[x as usize], 0x1,
+            "machine v[{:#02x?}] value should be updated by right-shifting by one",
+            x
+        );
+        assert_eq!(
+            machine.v[CARRY], 0x0,
+            "machine v[0xF] value should be the least-significant bit of v[{:#02x?}]",
+            x
+        );
     }
 }

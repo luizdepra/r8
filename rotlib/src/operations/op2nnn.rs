@@ -30,3 +30,34 @@ impl Operation for Op2nnn {
         OperationResult::JumpTo(self.nnn as usize)
     }
 }
+
+#[cfg(test)]
+mod test_op2nnn {
+    use super::*;
+
+    #[test]
+    fn test_op2nnn_exec() {
+        let mut machine = Machine::default();
+        let nnn = 0xF;
+
+        machine.sp = 0x5;
+        machine.pc = 0xA;
+
+        let op = Op2nnn::new(nnn);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(
+            result,
+            OperationResult::JumpTo(nnn as usize),
+            "should return JumpTo(nnn)"
+        );
+        assert_eq!(
+            machine.sp, 0x6,
+            "stack pointer should be incremented by one"
+        );
+        assert_eq!(
+            machine.stack[0x6], 0xA,
+            "new stack position should points to old program counter value"
+        );
+    }
+}

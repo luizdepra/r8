@@ -27,3 +27,26 @@ impl Operation for Opbnnn {
         OperationResult::JumpTo((self.nnn + machine.v[ZERO] as u16) as usize)
     }
 }
+
+#[cfg(test)]
+mod test_opbnnn {
+    use super::*;
+
+    #[test]
+    fn test_opannn_exec() {
+        let mut machine = Machine::default();
+        let nnn = 0x11;
+
+        machine.v[ZERO] = 0x5;
+
+        let op = Opbnnn::new(nnn);
+        let result = op.exec(&mut machine);
+
+        let expected = (nnn + machine.v[ZERO] as u16) as usize;
+        assert_eq!(
+            result,
+            OperationResult::JumpTo(expected),
+            "should return JumpTo(nnn + v[0x0])"
+        );
+    }
+}

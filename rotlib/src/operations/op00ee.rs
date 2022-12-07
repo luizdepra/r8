@@ -27,3 +27,27 @@ impl Operation for Op00ee {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op00ee {
+    use super::*;
+
+    #[test]
+    fn test_op00ee_exec() {
+        let mut machine = Machine::default();
+
+        machine.sp = 0x2;
+        machine.pc = 0x1;
+        machine.stack[0x2] = 0xF;
+
+        let op = Op00ee::new();
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(machine.sp, 0x1, "should decrement stack point in 1");
+        assert_eq!(
+            machine.pc, 0xF,
+            "program counter should point to the values stored in the stack"
+        );
+    }
+}

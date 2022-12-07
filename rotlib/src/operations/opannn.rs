@@ -29,3 +29,23 @@ impl Operation for Opannn {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_opannn {
+    use super::*;
+
+    #[test]
+    fn test_opannn_exec() {
+        let mut machine = Machine::default();
+        let nnn = 0x11;
+
+        let op = Opannn::new(nnn);
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        assert_eq!(
+            machine.i, nnn as usize,
+            "machine I register value should be equal to nnn"
+        );
+    }
+}

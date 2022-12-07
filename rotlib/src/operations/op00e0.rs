@@ -26,3 +26,29 @@ impl Operation for Op00e0 {
         OperationResult::Next
     }
 }
+
+#[cfg(test)]
+mod test_op00e0 {
+    use super::*;
+
+    #[test]
+    fn test_op00e0_exec() {
+        let mut machine = Machine::default();
+
+        // Make VRAM dirty.
+        machine
+            .vram
+            .iter_mut()
+            .enumerate()
+            .for_each(|(i, v)| *v = i % 2 == 0);
+
+        let op = Op00e0::new();
+        let result = op.exec(&mut machine);
+
+        assert_eq!(result, OperationResult::Next, "should return Next");
+        machine
+            .vram
+            .iter()
+            .for_each(|v| assert_eq!(*v, false, "all VRAM values should be false"));
+    }
+}
