@@ -1,0 +1,26 @@
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+name: test
+
+jobs:
+  lint:
+    name: r8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --bins --tests --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --doc --all-features
