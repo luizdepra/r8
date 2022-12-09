@@ -8,7 +8,7 @@ name: lint
 
 jobs:
   lint:
-    name: Lint R8
+    name: r8
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
