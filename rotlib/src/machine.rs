@@ -101,6 +101,14 @@ pub struct Machine {
 }
 
 impl Machine {
+    /// Creates a new Machine with the provided RNG.
+    pub fn new(rng: Box<dyn RngCore>) -> Self {
+        Self {
+            rng: Box::new(rng),
+            ..Default::default()
+        }
+    }
+
     /// Returns a reference to the machine VRAM. This value should be used to draw the screen.
     pub fn vram_as_ref(&self) -> &Vram {
         &self.vram
@@ -155,7 +163,7 @@ impl Machine {
     }
 
     /// Runs the operation extracted from the machine RAM.
-    fn run_instruction(&mut self, instr: u16, keys: &Keys) -> bool {
+    fn run_instruction(&mut self, instr: u16, keys: &Keys) {
         debug!("run_instruction, instr={:#06x?}, keys={:?}", instr, keys);
 
         let nibbles = (
@@ -218,22 +226,18 @@ impl Machine {
         match action {
             OperationResult::Next => {
                 self.pc += 2;
-                false
             }
             OperationResult::NextAndRedraw => {
                 self.pc += 2;
                 self.draw = true;
-                true
             }
             OperationResult::SkipNext => {
                 self.pc += 4;
-                false
             }
             OperationResult::JumpTo(addr) => {
                 self.pc = addr;
-                false
             }
-            OperationResult::WaitInput => false,
+            OperationResult::WaitInput => (),
         }
     }
 }
@@ -274,5 +278,190 @@ impl Default for Machine {
             draw: false,
             rng: Box::new(rand::thread_rng()),
         }
+    }
+}
+
+#[cfg(test)]
+mod test_machine {
+    use crate::{Key, Keyboard};
+
+    use super::*;
+
+    #[test]
+    fn test_load_rom() {
+        let mut machine = Machine::default();
+
+        let rom = [0x1u8; 100];
+
+        machine.load_rom(&rom);
+
+        assert_eq!(
+            machine.ram[ROM_INITIAL_ADDRESS..ROM_INITIAL_ADDRESS + rom.len()],
+            rom,
+            "machine ram should contain the rom data"
+        )
+    }
+
+    #[test]
+    fn test_update_timers() {
+        let mut machine = Machine::default();
+
+        machine.st = 5;
+        machine.dt = 3;
+
+        machine.update_timers();
+
+        assert_eq!(machine.st, 4, "machine sound timer should be decremented");
+        assert_eq!(machine.dt, 2, "machine delay timer should be decremented");
+
+        machine.st = 0;
+        machine.dt = 0;
+
+        machine.update_timers();
+
+        assert_eq!(
+            machine.st, 0,
+            "machine sound timer should no update when equal to zero"
+        );
+        assert_eq!(
+            machine.dt, 0,
+            "machine delay timer should no update when equal to zero"
+        );
+    }
+
+    #[test]
+    fn test_step_with_simple_operation() {
+        let mut machine = Machine::default();
+        let keyboard = Keyboard::default();
+
+        machine.draw = true;
+        // 00E0 CLS operation
+        machine.ram[INITIAL_PC_VALUE] = 0x00;
+        machine.ram[INITIAL_PC_VALUE + 1] = 0xE0;
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            false,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc,
+            INITIAL_PC_VALUE + 2,
+            "machine program counter should incremented by 2"
+        );
+    }
+
+    #[test]
+    fn test_step_with_draw_operation() {
+        let mut machine = Machine::default();
+        let keyboard = Keyboard::default();
+
+        machine.draw = true;
+        // 00E0 CLS operation
+        machine.ram[INITIAL_PC_VALUE] = 0xD0;
+        machine.ram[INITIAL_PC_VALUE + 1] = 0x05;
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            true,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc,
+            INITIAL_PC_VALUE + 2,
+            "machine program counter should incremented by 2"
+        );
+    }
+
+    #[test]
+    fn test_step_with_jump_operation() {
+        let mut machine = Machine::default();
+        let keyboard = Keyboard::default();
+
+        machine.draw = true;
+        // 00E0 CLS operation
+        machine.ram[INITIAL_PC_VALUE] = 0x13;
+        machine.ram[INITIAL_PC_VALUE + 1] = 0x45;
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            false,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc, 0x345,
+            "machine program counter should have jumped to 0x345"
+        );
+    }
+
+    #[test]
+    fn test_step_with_skip_operation() {
+        let mut machine = Machine::default();
+        let keyboard = Keyboard::default();
+
+        machine.draw = true;
+        // 00E0 CLS operation
+        machine.ram[INITIAL_PC_VALUE] = 0x91;
+        machine.ram[INITIAL_PC_VALUE + 1] = 0x20;
+        // Add v values
+        machine.v[0x1] = 1;
+        machine.v[0x2] = 2;
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            false,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc,
+            INITIAL_PC_VALUE + 4,
+            "machine program counter should incremented by 4"
+        );
+    }
+
+    #[test]
+    fn test_step_with_wait_operation() {
+        let mut machine = Machine::default();
+        let mut keyboard = Keyboard::default();
+
+        machine.draw = true;
+        // Fx0A LD (LD Vx, K) operation
+        machine.ram[INITIAL_PC_VALUE] = 0xF0;
+        machine.ram[INITIAL_PC_VALUE + 1] = 0x0A;
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            false,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc, INITIAL_PC_VALUE,
+            "machine program counter should be the same"
+        );
+
+        keyboard.press_key(Key::_0);
+
+        machine.step(keyboard.keys_as_ref());
+
+        assert_eq!(
+            machine.should_draw(),
+            false,
+            "machine vram should no be drawn"
+        );
+        assert_eq!(
+            machine.pc,
+            INITIAL_PC_VALUE + 2,
+            "machine program counter should incremented by 2"
+        );
     }
 }
