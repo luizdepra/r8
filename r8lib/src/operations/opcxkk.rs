@@ -55,11 +55,7 @@ mod test_opcxkk {
             let result = op.exec(&mut machine);
 
             assert_eq!(result, OperationResult::Next, "should return Next");
-            assert_eq!(
-                machine.v[x as usize], expc,
-                "machine v[{}] should be {}",
-                x, expc
-            );
+            assert_eq!(machine.v[x as usize], expc, "machine v[{}] should be {}", x, expc);
         }
     }
 }

@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rand = "^0.8.5"
+anyhow = "^1.0.57"
+env_logger = "^0.10.0"
+clap = { version = "^4.0.32", features = ["derive"] }
+cpal = "^0.14.2"
 log = "^0.4.17"
+pixels = "^0.11.0"
+thiserror = "^1.0.38"
+winit = "^0.27.5"
+winit_input_helper = "^0.13.0"
+r8lib = { path = "../r8lib" }
