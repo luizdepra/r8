@@ -65,12 +65,6 @@ fn main() -> Result<()> {
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
-                debug!(
-                    "frame, elapsed={:?}, target={:?}",
-                    frame_last_time.elapsed(),
-                    target_frame_time
-                );
-
                 if frame_last_time.elapsed() >= target_frame_time {
                     interpreter.update();
 

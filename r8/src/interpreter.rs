@@ -43,6 +43,8 @@ impl Interpreter {
     }
 
     pub fn update_timers(&mut self) {
+        debug!("interpreter_update_timers");
+
         self.machine.update_timers()
     }
 
