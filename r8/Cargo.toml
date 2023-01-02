@@ -1,7 +1,16 @@
 [package]
 name = "r8"
+description = "A CHIP-8 interpreter made with Rust, Pixels and Winit."
+keywords = ["gamedev", "chip-8", "emulators", "interpreters"]
+categories = ["emulators", "game-development"]
 version = "0.1.0"
 edition = "2021"
+authors = ["Luiz F. A. de Prá <rawarkanis@gmail.com>"]
+readme = "../README.md"
+homepage = "https://github.com/luizdepra/r8"
+repository = "https://github.com/luizdepra/r8"
+license = "MIT"
+
 
 [dependencies]
 anyhow = "^1.0.57"
