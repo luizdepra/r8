@@ -22,4 +22,4 @@ pixels = "^0.11.0"
 thiserror = "^1.0.38"
 winit = "^0.27.5"
 winit_input_helper = "^0.13.0"
-r8lib = { path = "../r8lib" }
+r8lib = { version = "^0.1.0", path = "../r8lib" }
