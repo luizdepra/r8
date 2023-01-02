@@ -319,14 +319,8 @@ mod test_machine {
 
         machine.update_timers();
 
-        assert_eq!(
-            machine.st, 0,
-            "machine sound timer should no update when equal to zero"
-        );
-        assert_eq!(
-            machine.dt, 0,
-            "machine delay timer should no update when equal to zero"
-        );
+        assert_eq!(machine.st, 0, "machine sound timer should no update when equal to zero");
+        assert_eq!(machine.dt, 0, "machine delay timer should no update when equal to zero");
     }
 
     #[test]
@@ -341,11 +335,7 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            false,
-            "machine vram should no be drawn"
-        );
+        assert_eq!(machine.should_draw(), false, "machine vram should no be drawn");
         assert_eq!(
             machine.pc,
             INITIAL_PC_VALUE + 2,
@@ -365,11 +355,7 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            true,
-            "machine vram should no be drawn"
-        );
+        assert_eq!(machine.should_draw(), true, "machine vram should no be drawn");
         assert_eq!(
             machine.pc,
             INITIAL_PC_VALUE + 2,
@@ -389,15 +375,8 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            false,
-            "machine vram should no be drawn"
-        );
-        assert_eq!(
-            machine.pc, 0x345,
-            "machine program counter should have jumped to 0x345"
-        );
+        assert_eq!(machine.should_draw(), false, "machine vram should no be drawn");
+        assert_eq!(machine.pc, 0x345, "machine program counter should have jumped to 0x345");
     }
 
     #[test]
@@ -415,11 +394,7 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            false,
-            "machine vram should no be drawn"
-        );
+        assert_eq!(machine.should_draw(), false, "machine vram should no be drawn");
         assert_eq!(
             machine.pc,
             INITIAL_PC_VALUE + 4,
@@ -439,11 +414,7 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            false,
-            "machine vram should no be drawn"
-        );
+        assert_eq!(machine.should_draw(), false, "machine vram should no be drawn");
         assert_eq!(
             machine.pc, INITIAL_PC_VALUE,
             "machine program counter should be the same"
@@ -453,11 +424,7 @@ mod test_machine {
 
         machine.step(keyboard.keys_as_ref());
 
-        assert_eq!(
-            machine.should_draw(),
-            false,
-            "machine vram should no be drawn"
-        );
+        assert_eq!(machine.should_draw(), false, "machine vram should no be drawn");
         assert_eq!(
             machine.pc,
             INITIAL_PC_VALUE + 2,

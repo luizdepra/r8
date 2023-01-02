@@ -75,11 +75,7 @@ mod test_opfx0a {
         let op = Opfx0a::new(x, &keys);
         let result = op.exec(&mut machine);
 
-        assert_eq!(
-            result,
-            OperationResult::WaitInput,
-            "should return WaitInput"
-        );
+        assert_eq!(result, OperationResult::WaitInput, "should return WaitInput");
         assert_eq!(
             machine.v[x as usize], 0x1,
             "machine v[{:#02x?}] value should not change",

@@ -1,5 +1,5 @@
 [package]
-name = "rlib"
+name = "r8lib"
 version = "0.1.0"
 edition = "2021"
 

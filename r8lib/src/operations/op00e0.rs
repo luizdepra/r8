@@ -36,11 +36,7 @@ mod test_op00e0 {
         let mut machine = Machine::default();
 
         // Make VRAM dirty.
-        machine
-            .vram
-            .iter_mut()
-            .enumerate()
-            .for_each(|(i, v)| *v = i % 2 == 0);
+        machine.vram.iter_mut().enumerate().for_each(|(i, v)| *v = i % 2 == 0);
 
         let op = Op00e0::new();
         let result = op.exec(&mut machine);

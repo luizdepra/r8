@@ -25,7 +25,7 @@ impl Operation for Op2nnn {
         debug!("op_2nnn, nnn={:#06x?}", self.nnn);
 
         machine.sp += 1;
-        machine.stack[machine.sp as usize] = machine.pc as u16;
+        machine.stack[machine.sp] = machine.pc as u16;
 
         OperationResult::JumpTo(self.nnn as usize)
     }
@@ -51,10 +51,7 @@ mod test_op2nnn {
             OperationResult::JumpTo(nnn as usize),
             "should return JumpTo(nnn)"
         );
-        assert_eq!(
-            machine.sp, 0x6,
-            "stack pointer should be incremented by one"
-        );
+        assert_eq!(machine.sp, 0x6, "stack pointer should be incremented by one");
         assert_eq!(
             machine.stack[0x6], 0xA,
             "new stack position should points to old program counter value"

@@ -58,7 +58,6 @@ mod test_opfx65 {
                 n
             )
         });
-        ((x as usize + 1)..=CARRY)
-            .for_each(|n| assert_eq!(machine.v[n], 0, "machine v[{}] should be equal to 0", n));
+        ((x as usize + 1)..=CARRY).for_each(|n| assert_eq!(machine.v[n], 0, "machine v[{}] should be equal to 0", n));
     }
 }

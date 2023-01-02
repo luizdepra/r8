@@ -57,13 +57,7 @@ mod test_opfx55 {
                 n
             )
         });
-        ((x as usize + 1)..=CARRY).for_each(|n| {
-            assert_eq!(
-                machine.ram[machine.i + n],
-                0,
-                "machine ram at i+{} should be 0",
-                n
-            )
-        });
+        ((x as usize + 1)..=CARRY)
+            .for_each(|n| assert_eq!(machine.ram[machine.i + n], 0, "machine ram at i+{} should be 0", n));
     }
 }

@@ -21,7 +21,7 @@ impl Operation for Op00ee {
     fn exec(&self, machine: &mut Machine) -> OperationResult {
         debug!("op_00ee");
 
-        machine.pc = machine.stack[machine.sp as usize] as usize;
+        machine.pc = machine.stack[machine.sp] as usize;
         machine.sp -= 1;
 
         OperationResult::Next
