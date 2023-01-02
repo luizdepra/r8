@@ -6,14 +6,23 @@ on:
 
 name: lint
 
+env:
+  SKIP: no-commit-to-branch
+
 jobs:
   lint:
     name: r8
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v3
-      - uses: actions-rs/toolchain@v1
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: install alsa
+        run: sudo apt-get install libasound2-dev
+      - name: setup python
+        uses: actions/setup-python@v3
+      - name: setup rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: pre-commit/action@v3.0.0
+      - name: run pre-commit hooks
+        uses: pre-commit/action@v3.0.0
