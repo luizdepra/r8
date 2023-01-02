@@ -13,7 +13,7 @@ pub struct CmdArgs {
     /// A value to scale every pixel from the screen.
     #[arg(short, long, default_value_t = 8)]
     pub scale: u32,
-    /// A desirable speed of the interprater.
+    /// A desirable speed of the interpreter.
     #[arg(short('S'), long, default_value_t = 1.0)]
     pub speed: f64,
 }
