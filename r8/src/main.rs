@@ -24,6 +24,9 @@ use crate::args::CmdArgs;
 const SCREEN_WIDTH: u32 = 64;
 const SCREEN_HEIGHT: u32 = 32;
 
+const DEFAULT_CYCLE_FREQUENCY: f64 = 540.0;
+const DEFAULT_TIMER_FREQUENCY: f64 = 60.0;
+
 fn main() -> Result<()> {
     env_logger::init();
 
@@ -54,33 +57,45 @@ fn main() -> Result<()> {
 
     let beep = Beep::new()?;
 
-    let target_frametime = Duration::from_micros(1_000_000 / args.cps);
-    let mut last_time = Instant::now();
+    let target_frame_time = Duration::from_micros((1_000_000.0 / DEFAULT_CYCLE_FREQUENCY / args.speed) as u64);
+    let target_timer_time = Duration::from_micros((1_000_000.0 / DEFAULT_TIMER_FREQUENCY / args.speed) as u64);
+    let mut frame_last_time = Instant::now();
+    let mut timer_last_time = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::RedrawRequested(_) => {
-                if last_time.elapsed() < target_frametime {
-                    return;
-                }
+                debug!(
+                    "frame, elapsed={:?}, target={:?}",
+                    frame_last_time.elapsed(),
+                    target_frame_time
+                );
 
-                interpreter.update();
+                if frame_last_time.elapsed() >= target_frame_time {
+                    interpreter.update();
 
-                if interpreter.should_draw() {
-                    interpreter.draw(pixels.get_frame_mut());
+                    if interpreter.should_draw() {
+                        interpreter.draw(pixels.get_frame_mut());
 
-                    if pixels.render().map_err(|e| error!("rendering failed: {}", e)).is_err() {
-                        *control_flow = ControlFlow::Exit;
+                        if pixels.render().map_err(|e| error!("rendering failed: {}", e)).is_err() {
+                            *control_flow = ControlFlow::Exit;
+                        }
                     }
+
+                    frame_last_time = Instant::now();
                 }
 
-                if interpreter.should_beep() {
-                    beep.play();
-                } else {
-                    beep.pause();
-                }
+                if timer_last_time.elapsed() >= target_timer_time {
+                    interpreter.update_timers();
 
-                last_time = Instant::now();
+                    if interpreter.should_beep() {
+                        beep.play();
+                    } else {
+                        beep.pause();
+                    }
+
+                    timer_last_time = Instant::now();
+                }
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
