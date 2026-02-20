@@ -17,7 +17,6 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    ///
     pub fn load(&mut self, path: &PathBuf) -> Result<()> {
         debug!("interpreter_load, path={path:?}");
 
