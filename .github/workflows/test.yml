@@ -14,7 +14,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: install alsa
-        run: sudo apt-get install libasound2-dev
+        run: |
+          sudo apt update
+          sudo apt install libasound2-dev
       - name: setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:

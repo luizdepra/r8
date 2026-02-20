@@ -17,7 +17,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: install alsa
-        run: sudo apt-get install libasound2-dev
+        run: |
+          sudo apt update
+          sudo apt install libasound2-dev
       - name: setup python
         uses: actions/setup-python@v3
       - name: setup rust toolchain
