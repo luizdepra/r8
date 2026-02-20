@@ -16,7 +16,7 @@ jobs:
       - name: install alsa
         run: |
           sudo apt update
-          sudo apt install libasound2-dev
+          sudo apt install libasound2-dev libfontconfig1-dev
       - name: setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
