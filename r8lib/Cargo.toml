@@ -12,5 +12,5 @@ repository = "https://github.com/luizdepra/r8"
 license = "MIT"
 
 [dependencies]
-rand = "^0.8.5"
+rand = "^0.8.6"
 log = "^0.4.17"
